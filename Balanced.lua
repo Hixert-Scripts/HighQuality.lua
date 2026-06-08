@@ -383,9 +383,9 @@ hButton.MouseButton1Click:Connect(function()
     if panelVisible then HidePanel() else ShowPanel() end
 end)
 
--- These will be replaced with actual loadstrings in the High Quality script
-local HIGHQUALITY_LOADSTRING = "loadstring(game:HttpGet('YOUR_HQ_GIST_URL'))()"
-local PERFORMANCE_LOADSTRING = "loadstring(game:HttpGet('YOUR_PERF_GIST_URL'))()"
+-- REAL LOADSTRINGS
+local HIGHQUALITY_LOADSTRING = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Hixert-Scripts/HighQuality.lua/main/HighQuality.lua"))()'
+local PERFORMANCE_LOADSTRING = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Hixert-Scripts/HighQuality.lua/main/Performance.lua"))()'
 
 btnHQ.MouseButton1Click:Connect(function()
     if setclipboard then
