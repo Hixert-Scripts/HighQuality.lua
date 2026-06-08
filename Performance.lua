@@ -477,15 +477,9 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ========== FAKE URL PLACEHOLDERS (USER MUST REPLACE) ==========
--- INSTRUCTIONS: Replace YOUR_GITHUB_USERNAME and GIST_ID with your actual Gist URLs
--- Create 2 Gists on https://gist.github.com:
---   1. HighQuality.lua - paste the High Quality script
---   2. Balanced.lua - paste the Balanced script
--- Then get the RAW URLs and replace below
-
-local HIGHQUALITY_LOADSTRING = 'loadstring(game:HttpGet("https://gist.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_GIST_ID/raw/HighQuality.lua"))()'
-local BALANCED_LOADSTRING = 'loadstring(game:HttpGet("https://gist.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_GIST_ID/raw/Balanced.lua"))()'
+-- ========== REAL LOADSTRINGS ==========
+local HIGHQUALITY_LOADSTRING = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Hixert-Scripts/HighQuality.lua/main/HighQuality.lua"))()'
+local BALANCED_LOADSTRING = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Hixert-Scripts/HighQuality.lua/main/Balanced.lua"))()'
 
 -- ========== H BUTTON AND GUI ==========
 local gui = Instance.new("ScreenGui")
@@ -600,8 +594,6 @@ end)
 btnHQ.MouseButton1Click:Connect(function()
     if setclipboard then
         setclipboard(HIGHQUALITY_LOADSTRING)
-        ShowNotif("✅ HIGH QUALITY loadstring copied!", Color3.fromRGB(0, 255, 100))
-        ShowNotif("🔄 Rejoining in 3 seconds...", Color3.fromRGB(255, 170, 0))
         task.wait(3)
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end
@@ -610,8 +602,6 @@ end)
 btnBalanced.MouseButton1Click:Connect(function()
     if setclipboard then
         setclipboard(BALANCED_LOADSTRING)
-        ShowNotif("✅ BALANCED loadstring copied!", Color3.fromRGB(0, 255, 100))
-        ShowNotif("🔄 Rejoining in 3 seconds...", Color3.fromRGB(255, 170, 0))
         task.wait(3)
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end
