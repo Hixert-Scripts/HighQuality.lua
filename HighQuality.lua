@@ -238,9 +238,9 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ========== REPLACE THESE WITH YOUR GITHUB GIST RAW URLs ==========
-local BALANCED_LOADSTRING = 'loadstring(game:HttpGet("https://gist.githubusercontent.com/YOUR_USERNAME/RAW_ID/raw/Balanced.lua"))()'
-local PERFORMANCE_LOADSTRING = 'loadstring(game:HttpGet("https://gist.githubusercontent.com/YOUR_USERNAME/RAW_ID/raw/Performance.lua"))()'
+-- ========== REAL LOADSTRINGS ==========
+local BALANCED_LOADSTRING = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Hixert-Scripts/HighQuality.lua/main/Balanced.lua"))()'
+local PERFORMANCE_LOADSTRING = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Hixert-Scripts/HighQuality.lua/main/Performance.lua"))()'
 
 -- ========== H BUTTON ==========
 local gui = Instance.new("ScreenGui")
