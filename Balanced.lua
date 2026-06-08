@@ -1,18 +1,20 @@
--- TSB Anti-Lag v12.15 - BALANCED
-print("✅ TSB Anti-Lag v12.15 Loaded - BALANCED")
+-- TSB Anti-Lag v12.15 - BALANCED [CLEANED & FIXED]
+print("✅ TSB Anti-Lag v12.15 Loaded - BALANCED [OPTIMIZED]")
 
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local TeleportService = game:GetService("TeleportService")
 local TweenService = game:GetService("TweenService")
-local UserSettings = game:GetService("UserSettings")
 local SoundService = game:GetService("SoundService")
 local LocalPlayer = Players.LocalPlayer
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ========== SAFETY FLAGS ==========
+local scriptActive = true
+local lastAdaptationCheck = 0
 
 local GRAY_ASSET = "rbxassetid://106578051"
 local function applyGraySky()
@@ -42,15 +44,22 @@ applyGraySky()
 local adaptationLevel = 0
 local adaptFPSHistory = {}
 local currentFPS = 60
+
 local function SmartAdaptation()
+    local now = os.clock()
+    if now - lastAdaptationCheck < 1 then return end
+    lastAdaptationCheck = now
+    
     table.insert(adaptFPSHistory, currentFPS)
     if #adaptFPSHistory > 10 then table.remove(adaptFPSHistory, 1) end
     local sum = 0
     for _, v in ipairs(adaptFPSHistory) do sum = sum + v end
     local avgFPS = sum / #adaptFPSHistory
+    
     if avgFPS < 30 then adaptationLevel = 2
     elseif avgFPS < 45 then adaptationLevel = 1
     else adaptationLevel = 0 end
+    
     if adaptationLevel == 2 then
         pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01; settings().Graphics.QualityLevel = Enum.QualityLevel.Level01 end)
     elseif adaptationLevel == 1 then
@@ -59,12 +68,11 @@ local function SmartAdaptation()
         pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level02; settings().Graphics.QualityLevel = Enum.QualityLevel.Level02 end)
     end
 end
-task.spawn(function() while task.wait(1) do pcall(SmartAdaptation) end end)
 
 local function AdaptivePurge(obj)
-    if not obj then return
+    if not obj then return end
     local name = obj.Name:lower()
-    if name:find("hitbox") or name:find("hurtbox") or name:find("m1") then return
+    if name:find("hitbox") or name:find("hurtbox") or name:find("m1") then return end
     if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
         pcall(function() obj:Destroy() end)
     elseif obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
@@ -76,7 +84,7 @@ end
 Workspace.DescendantAdded:Connect(function(obj) task.spawn(AdaptivePurge, obj) end)
 
 local function MakeHeadless(character)
-    if not character then return
+    if not character or not character.Parent then return end
     for _, v in pairs(character:GetDescendants()) do
         if v:IsA("BasePart") and v.Name == "Head" then v.Transparency = 1 end
         if v:IsA("BasePart") and v.Parent and v.Parent:IsA("Accessory") then
@@ -89,35 +97,47 @@ local function MakeHeadless(character)
         end
     end
 end
+
 if LocalPlayer.Character then MakeHeadless(LocalPlayer.Character) end
-LocalPlayer.CharacterAdded:Connect(function(character) task.wait(0.5); pcall(function() MakeHeadless(character) end) end)
+LocalPlayer.CharacterAdded:Connect(function(character)
+    task.wait(0.5)
+    if character and character.Parent then
+        pcall(function() MakeHeadless(character) end)
+    end
+end)
 
 local pendingDebris = {}
 local function MarkDebrisForPurge(obj)
-    if not obj then return
+    if not obj then return end
     local name = obj.Name:lower()
-    if name:find("hitbox") or name:find("hurtbox") or name:find("m1") then return
+    if name:find("hitbox") or name:find("hurtbox") or name:find("m1") then return end
     if obj:IsA("BasePart") and (name:find("debris") or name:find("grass") or name:find("rock") or 
        name:find("stone") or name:find("pebble") or name:find("rubble")) then
         pendingDebris[obj] = true
     end
 end
+
 local function PurgeDebris()
     for obj, _ in pairs(pendingDebris) do
         if obj and obj.Parent then pcall(function() obj:Destroy() end) end
         pendingDebris[obj] = nil
     end
 end
-task.spawn(function() while task.wait(1) do pcall(PurgeDebris) end end)
+task.spawn(function() while scriptActive do task.wait(1) pcall(PurgeDebris) end end)
 Workspace.DescendantAdded:Connect(function(obj) task.spawn(MarkDebrisForPurge, obj) end)
 
 local function LockGraphicsSettings()
     pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level02; settings().Graphics.QualityLevel = Enum.QualityLevel.Level02 end)
 end
 LockGraphicsSettings()
-task.spawn(function() while task.wait(1) do pcall(LockGraphicsSettings) end end)
+task.spawn(function() while scriptActive do task.wait(2) pcall(LockGraphicsSettings) end end)
 
+local lastFloorCheck = 0
 local function PreserveCollision()
+    local now = os.clock()
+    if now - lastFloorCheck < 5 then return end
+    lastFloorCheck = now
+    
     pcall(function()
         for _, part in ipairs(Workspace:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -131,7 +151,7 @@ local function PreserveCollision()
         end
     end)
 end
-task.spawn(function() while task.wait(5) do pcall(PreserveCollision) end end)
+task.spawn(function() while scriptActive do task.wait(5) pcall(PreserveCollision) end end)
 
 local thermalState = "NORMAL"
 local lastFPSCheck = os.clock()
@@ -140,7 +160,10 @@ local function CheckThermal()
     local now = os.clock()
     if now - lastFPSCheck >= 8 then
         lastFPSCheck = now
-        if currentFPS < 22 then
+        if currentFPS < 20 then
+            thermalState = "CRITICAL"
+            thermalFPSDrop = 10
+        elseif currentFPS < 22 then
             thermalState = "HOT"
             thermalFPSDrop = 10
         elseif currentFPS < 32 then
@@ -156,14 +179,19 @@ end
 local frameHistory = {}
 local lastFrameTime = os.clock()
 local smoothedDelta = 1/60
+
 RunService.RenderStepped:Connect(function(deltaTime)
-    if deltaTime < 0.005 or deltaTime > 0.05 then return
+    if deltaTime < 0.005 or deltaTime > 0.05 then return end
     currentFPS = math.floor(1 / deltaTime)
     CheckThermal()
     SmartAdaptation()
-    local targetDelta = 1/(60 - thermalFPSDrop)
+    
+    local safeTargetFPS = math.max(20, 60 - thermalFPSDrop)
+    local targetDelta = 1 / safeTargetFPS
+    
     table.insert(frameHistory, deltaTime)
     if #frameHistory > 10 then table.remove(frameHistory, 1) end
+    
     local weightedSum, weightTotal = 0, 0
     for i, t in ipairs(frameHistory) do
         local weight = i / #frameHistory
@@ -173,6 +201,7 @@ RunService.RenderStepped:Connect(function(deltaTime)
     local avgDelta = weightedSum / weightTotal
     smoothedDelta = (smoothedDelta * 0.6) + (avgDelta * 0.4)
     smoothedDelta = math.clamp(smoothedDelta, 0.012, targetDelta)
+    
     local now = os.clock()
     local elapsed = now - lastFrameTime
     if elapsed < smoothedDelta then task.wait(smoothedDelta - elapsed) end
@@ -194,9 +223,11 @@ monitorFrame.BackgroundTransparency = 0.5
 monitorFrame.BorderSizePixel = 1
 monitorFrame.BorderColor3 = Color3.fromRGB(255, 170, 0)
 monitorFrame.Parent = monitorGui
+
 local monitorCorner = Instance.new("UICorner")
 monitorCorner.CornerRadius = UDim.new(0, 5)
 monitorCorner.Parent = monitorFrame
+
 local titleBar = Instance.new("TextLabel")
 titleBar.Size = UDim2.new(1, 0, 0, 13)
 titleBar.Position = UDim2.new(0, 0, 0, 0)
@@ -208,6 +239,7 @@ titleBar.TextSize = 7
 titleBar.Font = Enum.Font.GothamBold
 titleBar.TextXAlignment = Enum.TextXAlignment.Center
 titleBar.Parent = monitorFrame
+
 local FPSLabel = Instance.new("TextLabel")
 FPSLabel.Size = UDim2.new(0.33, 0, 1, -30)
 FPSLabel.Position = UDim2.new(0, 0, 0, 13)
@@ -218,6 +250,7 @@ FPSLabel.TextSize = 12
 FPSLabel.Font = Enum.Font.RobotoMono
 FPSLabel.TextXAlignment = Enum.TextXAlignment.Center
 FPSLabel.Parent = monitorFrame
+
 local PingLabel = Instance.new("TextLabel")
 PingLabel.Size = UDim2.new(0.34, 0, 1, -30)
 PingLabel.Position = UDim2.new(0.33, 0, 0, 13)
@@ -228,6 +261,7 @@ PingLabel.TextSize = 12
 PingLabel.Font = Enum.Font.RobotoMono
 PingLabel.TextXAlignment = Enum.TextXAlignment.Center
 PingLabel.Parent = monitorFrame
+
 local MemLabel = Instance.new("TextLabel")
 MemLabel.Size = UDim2.new(0.33, 0, 1, -30)
 MemLabel.Position = UDim2.new(0.67, 0, 0, 13)
@@ -238,6 +272,7 @@ MemLabel.TextSize = 12
 MemLabel.Font = Enum.Font.RobotoMono
 MemLabel.TextXAlignment = Enum.TextXAlignment.Center
 MemLabel.Parent = monitorFrame
+
 local adaptLabel = Instance.new("TextLabel")
 adaptLabel.Size = UDim2.new(0.5, 0, 0, 10)
 adaptLabel.Position = UDim2.new(0, 0, 0, 45)
@@ -248,6 +283,7 @@ adaptLabel.TextSize = 6
 adaptLabel.Font = Enum.Font.GothamBold
 adaptLabel.TextXAlignment = Enum.TextXAlignment.Left
 adaptLabel.Parent = monitorFrame
+
 local thermalLabel = Instance.new("TextLabel")
 thermalLabel.Size = UDim2.new(0.5, 0, 0, 10)
 thermalLabel.Position = UDim2.new(0.5, 0, 0, 45)
@@ -261,6 +297,7 @@ thermalLabel.Parent = monitorFrame
 
 local fpsCounter = 0
 local lastUpdate = os.clock()
+
 RunService.RenderStepped:Connect(function()
     fpsCounter = fpsCounter + 1
     local now = os.clock()
@@ -269,6 +306,7 @@ RunService.RenderStepped:Connect(function()
         FPSLabel.Text = string.format("F:%d", fps)
         PingLabel.Text = string.format("P:%d", math.floor(LocalPlayer:GetNetworkPing() * 1000))
         MemLabel.Text = string.format("M:%d", math.floor(Stats:GetTotalMemoryUsageMb()))
+        
         if adaptationLevel == 2 then
             adaptLabel.Text = "ADAPT:MAX"
             adaptLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -279,7 +317,11 @@ RunService.RenderStepped:Connect(function()
             adaptLabel.Text = "ADAPT:NORM"
             adaptLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         end
-        if thermalState == "HOT" then
+        
+        if thermalState == "CRITICAL" then
+            thermalLabel.Text = "🌡️ CRIT!"
+            thermalLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        elseif thermalState == "HOT" then
             thermalLabel.Text = "🌡️ HOT"
             thermalLabel.TextColor3 = Color3.fromRGB(255, 170, 0)
         elseif thermalState == "WARM" then
@@ -308,9 +350,11 @@ hButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 hButton.TextSize = 22
 hButton.Font = Enum.Font.GothamBold
 hButton.Parent = gui
+
 local hCorner = Instance.new("UICorner")
 hCorner.CornerRadius = UDim.new(1, 0)
 hCorner.Parent = hButton
+
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 280, 0, 180)
 frame.Position = UDim2.new(0.5, -140, 0.5, -90)
@@ -320,9 +364,11 @@ frame.BorderSizePixel = 2
 frame.BorderColor3 = Color3.fromRGB(255, 170, 0)
 frame.Visible = false
 frame.Parent = gui
+
 local frameCorner = Instance.new("UICorner")
 frameCorner.CornerRadius = UDim.new(0, 12)
 frameCorner.Parent = frame
+
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 40)
 title.Position = UDim2.new(0, 0, 0, 0)
@@ -333,6 +379,7 @@ title.TextColor3 = Color3.fromRGB(0, 0, 0)
 title.TextSize = 14
 title.Font = Enum.Font.GothamBold
 title.Parent = frame
+
 local modeDisplay = Instance.new("TextLabel")
 modeDisplay.Size = UDim2.new(1, 0, 0, 25)
 modeDisplay.Position = UDim2.new(0, 0, 0, 42)
@@ -342,6 +389,7 @@ modeDisplay.TextColor3 = Color3.fromRGB(255, 170, 0)
 modeDisplay.TextSize = 11
 modeDisplay.Font = Enum.Font.GothamBold
 modeDisplay.Parent = frame
+
 local btnHQ = Instance.new("TextButton")
 btnHQ.Size = UDim2.new(0.85, 0, 0, 35)
 btnHQ.Position = UDim2.new(0.075, 0, 0, 75)
@@ -351,9 +399,11 @@ btnHQ.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnHQ.TextSize = 12
 btnHQ.Font = Enum.Font.GothamBold
 btnHQ.Parent = frame
+
 local btnCorner1 = Instance.new("UICorner")
 btnCorner1.CornerRadius = UDim.new(0, 8)
 btnCorner1.Parent = btnHQ
+
 local btnPerf = Instance.new("TextButton")
 btnPerf.Size = UDim2.new(0.85, 0, 0, 35)
 btnPerf.Position = UDim2.new(0.075, 0, 0, 120)
@@ -363,22 +413,35 @@ btnPerf.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnPerf.TextSize = 12
 btnPerf.Font = Enum.Font.GothamBold
 btnPerf.Parent = frame
+
 local btnCorner2 = Instance.new("UICorner")
 btnCorner2.CornerRadius = UDim.new(0, 8)
 btnCorner2.Parent = btnPerf
 
 local panelVisible = false
+local buttonDebounce = false
+
 local function ShowPanel()
+    if buttonDebounce then return end
+    buttonDebounce = true
     panelVisible = true
     frame.Visible = true
     local tween = TweenService:Create(frame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
         {Position = UDim2.new(0.5, -140, 0.5, -90)})
     tween:Play()
+    task.wait(0.3)
+    buttonDebounce = false
 end
+
 local function HidePanel()
+    if buttonDebounce then return end
+    buttonDebounce = true
     frame.Visible = false
     panelVisible = false
+    task.wait(0.3)
+    buttonDebounce = false
 end
+
 hButton.MouseButton1Click:Connect(function()
     if panelVisible then HidePanel() else ShowPanel() end
 end)
@@ -387,20 +450,41 @@ end)
 local HIGHQUALITY_LOADSTRING = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Hixert-Scripts/HighQuality.lua/main/HighQuality.lua"))()'
 local PERFORMANCE_LOADSTRING = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/Hixert-Scripts/HighQuality.lua/main/Performance.lua"))()'
 
-btnHQ.MouseButton1Click:Connect(function()
+local function CopyAndNotify(loadstring, mode)
     if setclipboard then
-        setclipboard(HIGHQUALITY_LOADSTRING)
-        task.wait(3)
+        setclipboard(loadstring)
+        local notifGui = Instance.new("ScreenGui")
+        notifGui.ResetOnSpawn = false
+        notifGui.Name = "TSB_CopyNotif"
+        notifGui.Parent = playerGui
+        
+        local notifLabel = Instance.new("TextLabel")
+        notifLabel.Size = UDim2.new(0, 300, 0, 40)
+        notifLabel.Position = UDim2.new(0.5, -150, 0.85, 0)
+        notifLabel.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+        notifLabel.Text = "✅ " .. mode .. " Loadstring Copied!"
+        notifLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+        notifLabel.TextSize = 11
+        notifLabel.Font = Enum.Font.GothamBold
+        notifLabel.Parent = notifGui
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = notifLabel
+        
+        task.wait(2)
+        notifGui:Destroy()
+        task.wait(1)
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end
+end
+
+btnHQ.MouseButton1Click:Connect(function()
+    CopyAndNotify(HIGHQUALITY_LOADSTRING, "HIGH QUALITY")
 end)
 
 btnPerf.MouseButton1Click:Connect(function()
-    if setclipboard then
-        setclipboard(PERFORMANCE_LOADSTRING)
-        task.wait(3)
-        TeleportService:Teleport(game.PlaceId, LocalPlayer)
-    end
+    CopyAndNotify(PERFORMANCE_LOADSTRING, "PERFORMANCE")
 end)
 
 task.spawn(function()
@@ -409,4 +493,4 @@ task.spawn(function()
     pcall(applyGraySky)
 end)
 
-print("🌩 TSB Anti-Lag BALANCED v12.15 - Made by Hixert")
+print("🌩 TSB Anti-Lag BALANCED v12.15 [CLEANED] - Made by Hixert")
